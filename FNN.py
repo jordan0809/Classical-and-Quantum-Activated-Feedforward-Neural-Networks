@@ -140,10 +140,10 @@ def fnn_solve(Q_list,layers,Q_sol_list=None,learning_rate=0.01,num_epochs=500,pr
         if post_annealing:
             u = np.identity(Q_size)
 
-            T = abs(best)
+            T0 = abs(best)/Q_size
             for a in range(1,anneal_round+1):
                 print(f"annealing round: {a}/{anneal_round}")
-                T = T/Q_size/a
+                T = T0/a
                 for i in range(Q_size):
                     trial_sol = abs(best_sol - u[i])
                     loss = trial_sol.T@W@trial_sol
