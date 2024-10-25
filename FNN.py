@@ -81,6 +81,9 @@ def fnn_solve(Q_list,layers,Q_sol_list=None,learning_rate=0.01,num_epochs=500,pr
                 loss = qubo_loss(Q,out)
     
                 loss.backward()
+
+                with torch.no_grad():
+                    inputs -= learning_rate*inputs.grad
     
                 optimizer.step()
            
@@ -109,6 +112,9 @@ def fnn_solve(Q_list,layers,Q_sol_list=None,learning_rate=0.01,num_epochs=500,pr
             loss = qubo_loss(Q,out)
     
             loss.backward()
+
+            with torch.no_grad():
+                    inputs -= learning_rate*inputs.grad
     
             optimizer.step()
            
