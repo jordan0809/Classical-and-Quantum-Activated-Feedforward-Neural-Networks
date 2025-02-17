@@ -51,8 +51,8 @@ def fnn_solve(Q_list,layers,Q_sol_list=None,learning_rate=0.01,num_epochs=500,pr
     
     """
 
-    sol_list = []
-    vector_list = []
+    cost_list = []  # a list of minimum cost values
+    vector_list = [] # a list of solution vectors
     for index,Q in enumerate(Q_list):
 
         if Q_sol_list !=None:
@@ -167,13 +167,14 @@ def fnn_solve(Q_list,layers,Q_sol_list=None,learning_rate=0.01,num_epochs=500,pr
         if Q_sol_list !=None:
             percentage_error = 100*(best-Q_sol)/abs(Q_sol)
             if percentage_error > 0.001:
-                sol_list.append(percentage_error)
+                cost_list.append(percentage_error)
             else:
-                sol_list.append(0)
+                cost_list.append(0)
             print(f"instance: {index+1}/{len(Q_list)}, loss={percentage_error}")
         else:
-            sol_list.append(best)
+            cost_list.append(best)
             print(f"instance: {index+1}/{len(Q_list)}, loss={best}")
+
+        vector_list.append(best_sol)
         
-    
-    return sol_list
+    return cost_list,vector_list
