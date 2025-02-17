@@ -34,4 +34,4 @@ def gurobi_solve(Q):
     solution = [x[i].x for i in range(n)]
     best_value = model.objVal
     #return solution
-    return solution,best_value
+    return best_value,solution
