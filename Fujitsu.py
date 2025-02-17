@@ -1,5 +1,4 @@
 from dadk.BinPol import *
-import torch
 import numpy as np
 
 def fujitsu_solve(Q):
