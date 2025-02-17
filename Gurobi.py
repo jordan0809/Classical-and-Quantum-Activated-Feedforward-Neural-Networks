@@ -2,7 +2,7 @@ import gurobipy as gp
 from gurobipy import GRB
 import numpy as np
 
-def solve_qubo(Q):
+def gurobi_solve(Q):
     n = len(Q)
     
     # Create a new model
