@@ -1,2 +1,2 @@
 # Classical-and-Quantum-Activated-Feedforward-Neural-Networks
-QUBO datasets, FNN, and QCED solvers 
+QUBO datasets, FNN, QCED, Gurobi, D-Wave Advantage, and Fujitsu digital annealer emulator. 
