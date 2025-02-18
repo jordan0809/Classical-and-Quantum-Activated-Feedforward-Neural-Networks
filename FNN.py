@@ -165,12 +165,12 @@ def fnn_solve(Q_list,layers,Q_sol_list=None,learning_rate=0.01,num_epochs=500,pr
                                         print("energy barrier overcome, loss:",loss)
 
         if Q_sol_list !=None:
-            percentage_error = 100*(best-Q_sol)/abs(Q_sol)
+            percentage_error = 100*abs((best-Q_sol)/Q_sol)
             if percentage_error > 0.001:
                 cost_list.append(percentage_error)
             else:
                 cost_list.append(0)
-            print(f"instance: {index+1}/{len(Q_list)}, loss={percentage_error}")
+            print(f"instance: {index+1}/{len(Q_list)}, percentage error={percentage_error}")
         else:
             cost_list.append(best)
             print(f"instance: {index+1}/{len(Q_list)}, loss={best}")
