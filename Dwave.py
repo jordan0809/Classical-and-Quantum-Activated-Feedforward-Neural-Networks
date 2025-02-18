@@ -4,9 +4,9 @@ import numpy as np
 from dimod import Binary
 
 def dwave_solve(Q,token):
-  '''
+  """
   token: API token from D-Wave
-  '''
+  """
   qpu = DWaveSampler(token=token)
   sampler = EmbeddingComposite(qpu)
   
