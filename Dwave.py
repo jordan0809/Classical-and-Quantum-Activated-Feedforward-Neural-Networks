@@ -3,11 +3,13 @@ from dwave.system.composites import EmbeddingComposite
 import numpy as np
 from dimod import Binary
 
-token = "insert API token"
-qpu = DWaveSampler(token=token)
-sampler = EmbeddingComposite(qpu)
-
-def dwave_solve(Q):
+def dwave_solve(Q,token):
+  '''
+  token: API token from D-Wave
+  '''
+  qpu = DWaveSampler(token=token)
+  sampler = EmbeddingComposite(qpu)
+  
   Q = Q.detach().numpy()
   qubo = 0
   for i in range(len(Q)):
