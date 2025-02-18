@@ -392,8 +392,8 @@ def QCED_solve(Q: Tensor,q_resource: dict,num_epochs=100,lr=0.01,e_layers=3,d_la
         result = [binary_losses,prob_losses]
     # If the optimal solution is provided, then return the percentage error relative to the optimal solution
     else:
-        bin_err = [100*(s-Q_sol)/abs(Q_sol) for s in binary_losses]
-        prob_err = [100*(s-Q_sol)/abs(Q_sol) for s in prob_losses]
+        bin_err = [100*abs((s-Q_sol)/Q_sol) for s in binary_losses]
+        prob_err = [100*abs((s-Q_sol)/Q_sol) for s in prob_losses]
         result = [bin_err,prob_err]
 
     print(f"Solution: {binary_solution[-1]}")
