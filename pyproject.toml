@@ -16,8 +16,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-gurobi = ["gurobipy"] 
-dwave = ["dwave-ocean-sdk"]  
+gurobi = ["gurobipy"] # for using Gurobi
+dwave = ["dwave-ocean-sdk"]  # for using D-Wave
 
 [build-system]
 requires = ["setuptools>=61.0"]

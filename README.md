@@ -12,14 +12,4 @@ For the implementation of the Gurobi solver:
 pip install gurobipy
 ```
 
-For the implementation of the Fujitsu Digital Annealer emulator:
-
-1. Install Python 3.9 and Jupyter 
-2. Download `dadk_light_3.9.tar.bz2` from Fujitsu
-3. Install manually:
-
-```bash
-pip install -U Software/dadk_light_3.9.tar.bz2
-```
-
-or follow the `fujitsu_environment.yml` file
+For the implementation of the Fujitsu Digital Annealer emulator, please follow the tutorial in `Fujitsu_Digital_Annealer_Tutorial.zip`.
