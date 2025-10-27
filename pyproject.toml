@@ -1,0 +1,24 @@
+[project]
+name = "classical_quantum_QUBO"
+version = "0.1.0"
+description = "Quantum/Classical QUBO optimizers"
+authors = [
+    { name="Chia-Tso Lai", email="chiatsolai@gmail.com" }
+]
+requires-python = ">=3.9,<3.11"
+
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "torch",
+    "qutip",
+    "cython",
+]
+
+[project.optional-dependencies]
+gurobi = ["gurobipy"] 
+dwave = ["dwave-ocean-sdk"]  
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
