@@ -1,7 +1,7 @@
 # Classical-and-Quantum-Activated-Feedforward-Neural-Networks
 This repository contains QUBO datasets, FNN, QCED, Gurobi, D-Wave Advantage, and Fujitsu Digital Annealer emulator.
 
-To install the necessary packages for implementing the FNN and QCED optimizers, please follow the `pyproject.toml` file and run
+To install the necessary packages for implementing the FNN and QCED optimizers, please follow the `pyproject.toml` file and run:
 
 ```bash
 pip install . 

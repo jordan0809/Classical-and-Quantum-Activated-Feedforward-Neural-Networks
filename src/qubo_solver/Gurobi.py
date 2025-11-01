@@ -1,6 +1,5 @@
 import gurobipy as gp
 from gurobipy import GRB
-import numpy as np
 
 def gurobi_solve(Q):
     n = len(Q)

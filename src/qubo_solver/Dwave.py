@@ -1,6 +1,5 @@
 from dwave.system.samplers import DWaveSampler
 from dwave.system.composites import EmbeddingComposite
-import numpy as np
 from dimod import Binary
 
 def dwave_solve(Q,token):

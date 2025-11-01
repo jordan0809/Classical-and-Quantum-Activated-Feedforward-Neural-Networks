@@ -1,0 +1,11 @@
+numpy
+matplotlib
+torch
+qutip
+cython
+
+[dwave]
+dwave-ocean-sdk
+
+[gurobi]
+gurobipy
