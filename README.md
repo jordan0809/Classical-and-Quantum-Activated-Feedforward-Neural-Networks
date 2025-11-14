@@ -1,5 +1,5 @@
 # Classical-and-Quantum-Activated-Feedforward-Neural-Networks
-This repository contains the code and datasets used in the paper [Towards arbitrary QUBO optimization: analysis of classical and quantum-activated feedforward neural networks] (https://iopscience.iop.org/article/10.1088/2632-2153/addb97
+This repository contains the code and datasets used in the paper `Towards arbitrary QUBO optimization: analysis of classical and quantum-activated feedforward neural networks` (https://iopscience.iop.org/article/10.1088/2632-2153/addb97
 ).
 It includes QUBO datasets, implementations of FNN and QCED models, and interfaces for classical and quantum optimizers including Gurobi, D-Wave Advantage, and the Fujitsu Digital Annealer emulator.
 
