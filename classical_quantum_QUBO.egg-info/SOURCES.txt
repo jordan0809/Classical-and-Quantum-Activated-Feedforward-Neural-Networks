@@ -1,7 +1,0 @@
-README.md
-pyproject.toml
-classical_quantum_QUBO.egg-info/PKG-INFO
-classical_quantum_QUBO.egg-info/SOURCES.txt
-classical_quantum_QUBO.egg-info/dependency_links.txt
-classical_quantum_QUBO.egg-info/requires.txt
-classical_quantum_QUBO.egg-info/top_level.txt

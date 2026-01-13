@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+.ruff_cache/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Distribution / packaging artifacts
+*.egg-info/
+build/
+dist/

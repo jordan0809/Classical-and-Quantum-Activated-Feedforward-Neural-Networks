@@ -8,11 +8,11 @@ authors = [
 requires-python = ">=3.9,<3.11"
 
 dependencies = [
-    "numpy",
+    "numpy>=1.22,<1.24",
     "matplotlib",
-    "torch",
-    "qutip",
-    "cython",
+    "torch>=2.0.0",
+    "qutip>=4.7.1",
+    "cython<3.0",
 ]
 
 [project.optional-dependencies]
@@ -20,5 +20,5 @@ gurobi = ["gurobipy"] # for using Gurobi
 dwave = ["dwave-ocean-sdk"]  # for using D-Wave
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel", "numpy>=1.22,<1.24", "cython<3.0"]
 build-backend = "setuptools.build_meta"
