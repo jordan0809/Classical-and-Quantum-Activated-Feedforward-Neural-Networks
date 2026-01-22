@@ -18,6 +18,10 @@ dependencies = [
 [project.optional-dependencies]
 gurobi = ["gurobipy"] # for using Gurobi
 dwave = ["dwave-ocean-sdk"]  # for using D-Wave
+qiskit = [
+    "qiskit>=1.0.0",
+    "qiskit-aer>=0.14.1",
+]  # for using QCED_digital (recommended)
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel", "numpy>=1.22,<1.24", "cython<3.0"]
