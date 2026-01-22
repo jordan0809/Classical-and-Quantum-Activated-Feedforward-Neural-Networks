@@ -43,3 +43,8 @@ pip install ".[dwave]"
 ```
 
 For the implementation of the Fujitsu Digital Annealer emulator (`Fujitsu.py`), please follow the tutorial in `Fujitsu_Digital_Annealer_Tutorial.zip`.
+
+## Usage
+For a quick start and example usage, please refer to the provided Jupyter Notebook:
+
+[`example/example.ipynb`](example/example.ipynb)
