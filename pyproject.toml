@@ -13,6 +13,7 @@ dependencies = [
     "torch>=2.0.0",
     "qutip>=4.7.1",
     "cython<3.0",
+    "pathos>=0.3.0",
 ]
 
 [project.optional-dependencies]
