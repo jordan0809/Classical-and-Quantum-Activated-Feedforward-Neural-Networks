@@ -53,12 +53,15 @@ def quantum_activation(ansatz: QuantumCircuit, assigned_vals: list[float]):
     return expectations
 
 
-def parameter_shift(ansatz, assigned_vals):
+def parameter_shift(ansatz: QuantumCircuit, assigned_vals: list[float]):
     """Using the parameter-shift rule for gradient calculation."""
     n = ansatz.num_qubits
     num_params = ansatz.num_parameters
     num_observe = n * (n - 1) // 2
     gradients = torch.zeros(num_observe, num_params, dtype=torch.float32)
+
+    # prepare shifted parameter vectors (+ and -) for all parameters
+    all_shifted_vals = np.zeros((2 * num_params, num_params))
 
     shift = np.pi / 2
     for i in range(num_params):
@@ -67,10 +70,25 @@ def parameter_shift(ansatz, assigned_vals):
         minus_vals = assigned_vals.copy()
         minus_vals[i] -= shift
 
-        diff = quantum_activation(ansatz, plus_vals) - quantum_activation(
-            ansatz, minus_vals
-        )
-        gradients[:, i] = diff / 2
+        all_shifted_vals[2 * i] = plus_vals
+        all_shifted_vals[2 * i + 1] = minus_vals
+
+    # compute expectation values for all parameter vectors in parallel
+    paulis = [[("ZZ", [i, j], 1)] for i in range(n) for j in range(i + 1, n)]
+    observables = [SparsePauliOp.from_sparse_list(p, n) for p in paulis]
+
+    estimator = EstimatorV2()
+    # reshape for batch processing (# of parameter vectors, 1 (broadcast over all observables), # of parameters)
+    # evaluate all observables for all sets of parameter vectors.
+    batch_shifted_vals = all_shifted_vals.reshape(2 * num_params, 1, num_params)
+    pubs = [(ansatz, observables, batch_shifted_vals)]
+    job = estimator.run(pubs)
+    result = job.result()[0]
+    expectations = result.data.evs
+
+    for i in range(num_params):
+        diff = expectations[2 * i] - expectations[2 * i + 1]
+        gradients[:, i] = torch.tensor(diff / 2, dtype=torch.float32)
 
     return gradients
 

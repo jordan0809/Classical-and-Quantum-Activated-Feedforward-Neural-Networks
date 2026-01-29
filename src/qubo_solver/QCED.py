@@ -6,16 +6,17 @@ import matplotlib.pyplot as plt
 from qutip import basis, mesolve, expect, tensor, sigmax, sigmay, sigmaz, qeye
 from scipy.spatial.distance import pdist, squareform
 import time
+from pathos.multiprocessing import ProcessingPool as Pool
+import warnings
+import qutip.settings
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-try:
-    import cython
-
-    use_cython = True
-    print(f"Cython {cython.__version__} found.")
-except ImportError:
-    use_cython = False
+# suppress Python warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+# suppress QuTiP logging
+qutip.settings.loglevel = "ERROR"
 
 
 # Construct 1-qubit Pauli operator
@@ -67,46 +68,27 @@ def simulation(q, T, omegas, delta_0, delta_s, V, noise=0):
     delta_0 = delta_0 * (1 + np.random.uniform(-noise, noise))
     delta_s = delta_s * (1 + np.random.uniform(-noise, noise))
 
-    # N = len(omegas)+2  #include boundary values
+    # N = len(omegas)+2  # include boundary values
     # oparams = [0]+list(omegas)+[0]  #boundary conditions: Ω(t0) = Ω(tN) = 0
-    N = len(omegas)  # dont consider boundary conditions
+    N = len(omegas)  # without boundary conditions
     oparams = list(omegas)
 
-    delta_t = T / N  # duration of each step
+    step_size = T / N  # duration of each step
 
     w = [
         oparams[i] if i == 0 else oparams[i] - oparams[i - 1] for i in range(N)
     ]  # coefficients of the basis Sigmoid functions
 
-    if use_cython:
-        # if Cython is installed, string-based Hamiltonian is used in QuTiP simulation
-        omega_t = ""
-        for i in range(1, N):
-            omega_t += f"{w[i]}*1/(exp(-1000*(t-{delta_t}*{i})+10)+1)+"
+    omega_t = ""
+    for i in range(1, N):
+        omega_t += f"{w[i]}*1/(exp(-1000*(t-{step_size}*{i})+10)+1)+"
 
-        omega_t = omega_t[:-1]  # remove the "+" sign in the end
+    omega_t = omega_t[:-1]  # remove the "+" sign in the end
 
-        delta_t = []
-        for j in range(q):
-            d = f"{delta_0[j]}+{delta_s[j]}*t"
-            delta_t.append(d)
-
-    else:
-        # Without Cython (function-based Hamiltonian is used)
-        def omega_t(t, args):
-            y = 0
-            for i in range(N):
-                y += w[i] * 1 / (np.exp(-1000 * (t - i * delta_t) + 10) + 1)
-            return y
-
-        class local_delta:
-            def __init__(self, j):
-                self.j = j
-
-            def evo(self):
-                return lambda t, args: delta_0[self.j] + delta_s[self.j] * t
-
-        delta_t = [local_delta(j).evo() for j in range(q)]
+    delta_t = []
+    for j in range(q):
+        d = f"{delta_0[j]}+{delta_s[j]}*t"
+        delta_t.append(d)
 
     Vjk = 0
     for j in range(q):
@@ -126,7 +108,7 @@ def simulation(q, T, omegas, delta_0, delta_s, V, noise=0):
     # intial state = ground state = |1>
     init = tensor([basis(2, 1) for i in range(q)])
 
-    result_t = mesolve(H_t, init, time_list, [], [])
+    result_t = mesolve(H_t, init, time_list, c_ops=[], e_ops=[])
 
     # Measure in the z-basis of each qubit
     measurement = [single_pauli(q, j, 2) for j in range(q)]
@@ -140,52 +122,70 @@ def simulation(q, T, omegas, delta_0, delta_s, V, noise=0):
 
 
 # Finite-difference method for gradient computation
-def finite_diff(q, T, omegas, delta_0, delta_s, V, noise):
+def finite_diff(q, T, omegas, delta_0, delta_s, V, noise, num_processes=None):
     diff = 0.0001
-    shift = diff * np.identity(q)
 
-    omegas_grad = []
-    delta_0_grad = []
-    delta_s_grad = []
+    # we need 2 * 3q simulations (plus and minus for each of the 3q parameters)
+    # generate the parameter sets
+    def get_tasks():
+        # store the parameters as tuples (omegas, delta_0, delta_s)
+        param_tasks = []
 
-    for m in range(q):  # m: index of the parameter
-        plus = omegas + shift[m, :]
-        minus = omegas - shift[m, :]
-        omegas_grad.append(
-            (
-                simulation(q, T, plus, delta_0, delta_s, V, noise)
-                - simulation(q, T, minus, delta_0, delta_s, V, noise)
-            )
-            / (2 * diff)
-        )
-        plus = delta_0 + shift[m, :]
-        minus = delta_0 - shift[m, :]
-        delta_0_grad.append(
-            (
-                simulation(q, T, omegas, plus, delta_s, V, noise)
-                - simulation(q, T, omegas, minus, delta_s, V, noise)
-            )
-            / (2 * diff)
-        )
-        plus = delta_s + shift[m, :]
-        minus = delta_s - shift[m, :]
-        delta_s_grad.append(
-            (
-                simulation(q, T, omegas, delta_0, plus, V, noise)
-                - simulation(q, T, omegas, delta_0, minus, V, noise)
-            )
-            / (2 * diff)
-        )
+        # omega shifts
+        for i in range(len(omegas)):
+            plus, minus = omegas.copy(), omegas.copy()
+            plus[i] += diff
+            minus[i] -= diff
+            param_tasks.append((plus, delta_0, delta_s))
+            param_tasks.append((minus, delta_0, delta_s))
 
-    ograd = np.array(
-        omegas_grad
-    ).transpose()  # jth row: gradients w.r.t. the expectation value of the jth qubit
-    dgrad_0 = np.array(delta_0_grad).transpose()
-    dgrad_s = np.array(delta_s_grad).transpose()
+        # delta_0 shifts
+        for i in range(len(delta_0)):
+            plus, minus = delta_0.copy(), delta_0.copy()
+            plus[i] += diff
+            minus[i] -= diff
+            param_tasks.append((omegas, plus, delta_s))
+            param_tasks.append((omegas, minus, delta_s))
 
-    gradient_list = [
-        [ograd[j, :], dgrad_0[j, :], dgrad_s[j, :]] for j in range(q)
-    ]  # jth item: gradients of the expectation value of the jth qubit
+        # delta_s shifts
+        for i in range(len(delta_s)):
+            plus, minus = delta_s.copy(), delta_s.copy()
+            plus[i] += diff
+            minus[i] -= diff
+            param_tasks.append((omegas, delta_0, plus))
+            param_tasks.append((omegas, delta_0, minus))
+
+        return param_tasks
+
+    tasks = get_tasks()
+
+    # worker function for unpacking the parameter sets
+    def worker(p_set, sim_func=simulation):
+        o, d0, ds = p_set
+        return sim_func(q, T, o, d0, ds, V, noise)
+
+    # parallel execution
+    with Pool(num_processes) as pool:
+        results = pool.map(worker, tasks)
+
+    # reconstruct gradients (results is a list of length 6q)
+    results = np.array(results)  # shape (6q, q)
+
+    # split into plus/minus pairs and calculate finite-difference gradient
+    grads_flat = []
+    for i in range(0, len(results), 2):
+        grad = (results[i] - results[i + 1]) / (2 * diff)
+        grads_flat.append(grad)
+
+    grads_flat = np.array(grads_flat)  # shape (3q, q)
+
+    # reshape  to ograd, dgrad_0, dgrad_s (shape (q,q))
+    # Each row represents all the gradients w.r.t. a qubit's expectation value
+    ograd = grads_flat[0:q].T
+    dgrad_0 = grads_flat[q : 2 * q].T
+    dgrad_s = grads_flat[2 * q : 3 * q].T
+
+    gradient_list = [[ograd[j, :], dgrad_0[j, :], dgrad_s[j, :]] for j in range(q)]
 
     return gradient_list
 
@@ -254,7 +254,7 @@ class Encoder(nn.Module):
 class Quantum(torch.autograd.Function):
     # input is the input tensor from the encoder
     @staticmethod
-    def forward(ctx, input, q, T, V, noise):
+    def forward(ctx, input, q, T, V, noise, num_processes):
         ctx.q = q  # save q as a parameter of ctx to use it in the backward pass
 
         # convert the input tensors from the encoder into numpy arrays
@@ -268,7 +268,7 @@ class Quantum(torch.autograd.Function):
         delta_s = t_delta_s.detach().numpy()
 
         # calculate the gradients of laser parameters and save it in ctx for backward pass
-        finite = finite_diff(q, T, omegas, delta_0, delta_s, V, noise)
+        finite = finite_diff(q, T, omegas, delta_0, delta_s, V, noise, num_processes)
         ctx.finite = finite
 
         return torch.tensor(
@@ -308,8 +308,9 @@ class Quantum(torch.autograd.Function):
             None,
             None,
             None,
+            None,
         )  # shape (q,3) (same dimension as input)
-        # return None for extra parameters q,T,V,noise since we don't need to calculate the gradient of them
+        # return None for extra parameters q,T,V,noise,num_processes since we don't need to calculate the gradient of them
 
 
 # Define the Decoder Class
@@ -361,6 +362,7 @@ def QCED_solve(
     e_layers=3,
     d_layers=3,
     noise=0,
+    num_processes=None,
     Q_sol=None,
 ):
     """
@@ -384,6 +386,8 @@ def QCED_solve(
     e_layer, d_layer: number of layers in the encoder and decoder respectively
 
     noise: maximum noise ratio relative to the laser parameters
+
+    num_processes: number of CPU cores used during quantum gradient calculations. Defaults to all available cores
 
     Q_sol: cost value of the optimal solution (if available)
 
@@ -414,7 +418,7 @@ def QCED_solve(
 
         # forward pass
         encoder_out = encoder(x)
-        q_out = Ryd(encoder_out, q, T, V, noise)
+        q_out = Ryd(encoder_out, q, T, V, noise, num_processes)
         # print(f"q_out:{q_out}")
         y = decoder(q_out)
         loss = qubo_loss(Q, y)
@@ -429,7 +433,7 @@ def QCED_solve(
         optimizer.zero_grad()
 
         with torch.no_grad():
-            sol_vector = decoder(Ryd(encoder(x), q, T, V, noise))
+            sol_vector = decoder(Ryd(encoder(x), q, T, V, noise, num_processes))
             loss_value = qubo_loss(Q, sol_vector)
             solution.append(sol_vector)
             loss_list.append(loss_value)

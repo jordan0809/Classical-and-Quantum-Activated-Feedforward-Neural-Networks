@@ -1,1 +1,0 @@
-qubo_solver
